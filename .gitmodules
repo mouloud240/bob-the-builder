@@ -1,3 +1,6 @@
 [submodule "click-up-mcp"]
 	path = click-up-mcp
 	url = git@github.com:Ai-orchestrator-org/click-up-mcp.git
+[submodule "core"]
+	path = core
+	url = git@github.com:Ai-orchestrator-org/core.git

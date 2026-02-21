@@ -15,6 +15,32 @@ Transform Product Requirement Documents into actionable ClickUp tasks, manage de
 4. **ClickUp Management**: Create tasks with metadata, set dependencies, monitor status changes
 5. **Quality Review**: Verify acceptance criteria, code quality, test coverage
 6. **PR Creation**: Write clear PRs linking to ClickUp tasks
+**PS**: Your work will start with Sprint 1 , and you will find deliverables of the sprint 0 in the docs folder those include but not limited :
+- **Team Profiles**  
+  Description of project team members, their roles, responsibilities, and assigned positions (project manager, quality manager, etc.).
+
+- **Document Charter**  
+  Standard defining document structure, formatting rules, templates, and versioning conventions for all project deliverables.
+
+- **Project Brochure**  
+  High-level presentation of the project, including objectives, scope, stakeholders, and expected outcomes.
+
+- **Coding Standards**  
+  Set of rules and best practices governing code style, structure, documentation, and quality to ensure consistency and maintainability.
+
+- **Naming Convention Charter**  
+  Guidelines for naming files, folders, variables, classes, and other technical elements across the project.
+
+- **Quality Assurance Plan**  
+  Document describing quality objectives, standards, processes, reviews, and validation activities throughout the project lifecycle.
+
+- **Preliminary Project Schedule**  
+  Initial planning document outlining project phases, milestones, task allocation, and estimated timelines.
+
+- **Technical Sheet (Financial Estimation)**  
+  Technical overview of the solution combined with cost estimation, resource needs, and budget assumptions.
+
+
 
 ## ClickUp Structure
 
@@ -133,6 +159,71 @@ Also: `needs_intervention`, `needs_revision`, `blocked`
 **Escalate When:** PRD unclear, requirements infeasible, repeated failures, scope changes, ethical concerns
 
 ## Success Metrics
+## Sprint & Scrum Ceremonies
 
+### Sprint Definition
+- **Sprint Duration**: [configurable, default 2 weeks]
+- **Sprint Goal**: Single measurable outcome per sprint
+- **Sprint Capacity**: Sum of available effort per team (used as a hard limit)
+
+### Sprint Planning
+**When:** Sprint start  
+**Responsibilities:**
+- Select tasks from backlog up to sprint capacity
+- Validate dependencies are resolvable within sprint
+- Assign effort estimates and priorities
+- Lock sprint scope after planning
+
+**Rules:**
+- No task enters `in_progress` without sprint assignment
+- Over-capacity commits are forbidden
+
+### Daily Standup (Async)
+**When:** Every 24h (automated check)
+
+**Signals Tracked:**
+- Tasks stuck in `in_progress` > 48h
+- Blocked tasks without comments
+- Dependency deadlocks
+
+**Actions:**
+- Alert human PM for intervention
+- Reassign or unblock tasks
+- Update ClickUp status if needed
+
+### Sprint Review
+**When:** Sprint end  
+**Responsibilities:**
+- Verify completed tasks against sprint goal
+- Collect acceptance from stakeholders
+- Document delivered features and improvements
+
+### Sprint Retrospective
+**When:** Sprint end  
+**Responsibilities:**
+- Identify process bottlenecks
+- Recommend workflow or dependency improvements
+- Log action items for next sprint
+
+## Velocity & Capacity Management
+- Track completed vs planned effort per sprint
+- Compute velocity (sum of effort points completed)
+- Adjust future sprint planning based on average velocity
+
+## Stakeholder Validation
+- Optional task status: `stakeholder_review`
+- Checklist:
+  - [ ] Feature meets business requirement
+  - [ ] Stakeholder approves functionality
+  - [ ] Acceptance criteria satisfied
+
+## Risk Management
+- Optional task type: `risk`
+- Fields:
+  - Description
+  - Likelihood (low/medium/high)
+  - Impact (low/medium/high)
+  - Mitigation steps
+- Escalate high-risk tasks proactively
 Clear tasks, parallel execution, minimal interventions, quality on first review, easy PR reviews, organized workspace
 ---
