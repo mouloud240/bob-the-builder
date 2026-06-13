@@ -1,4 +1,4 @@
-.PHONY: build serve test lint typecheck start-mcp clean
+.PHONY: build serve test lint typecheck start-mcp clean dev dev-full
 
 build:
 	@echo "Building orchestrator-server..."
@@ -27,9 +27,15 @@ start-mcp:
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf dist/ .nx/ coverage/
-	find . -name 'node_modules' -type d -prune -exec rm -rf {} +
+	find . -name 'node_modules' -type d -not -path './click-up-mcp/node_modules' -prune -exec rm -rf {} +
 
-dev: start-mcp serve
+dev: serve
+
+dev-full:
+	@echo "Starting ClickUp MCP and orchestrator-server..."
+	@make start-mcp &
+	@sleep 5
+	@make serve
 
 build-all:
 	nx run-many --target=build --all

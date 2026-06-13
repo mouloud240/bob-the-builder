@@ -1,24 +1,32 @@
 # AI Orchestrator — Status
 
-## Current Phase: Milestone 0 — Foundation
+## Current Phase: Milestone 1 — MCP Integration Verification
 
-### Milestone 0 Deliverables
+### M0 Deliverables ✅
 - [x] Nx workspace initialized
 - [x] Core interfaces defined (6 interfaces with Symbol tokens)
-- [ ] All library implementations complete
-- [ ] Orchestrator service skeleton
-- [ ] NestJS app composition root
-- [ ] MCP connection verified end-to-end
+- [x] All 6 implementation libraries scaffolded
+- [x] Orchestrator service skeleton with state machine
+- [x] NestJS app composition root with DI wiring
+- [x] Build compiles, server boots, all modules initialize
+- [x] Graceful MCP connection retry (3 retries, 5s backoff)
+
+### M1 Deliverables
+- [x] `/api/status` endpoint showing MCP connection state
+- [x] `/health` endpoint
+- [x] Task CRUD REST controller (`/api/tasks/*`)
+- [x] McpTaskStorageService retry and health check methods
+- [ ] E2E verification against live ClickUp MCP
+- [ ] Integration test for MCP task storage
 
 ### Blockers
 - None
 
 ### Recent Changes
-- Initialized Nx monorepo with pnpm
-- Removed old `core/` NestJS scaffold
-- Created architecture documentation and ADRs
+- Added `/api/status` and `/api/tasks/*` REST endpoints
+- MCP service gracefully degrades when server unavailable
+- Fixed module resolution, DI wiring, @Global() modules
 
 ### Next Up
-- Create `libs/shared` with types, constants, events
-- Create `libs/core-interfaces` with 6 interfaces
-- Begin implementation libraries
+- Verify E2E against live ClickUp MCP
+- Integration tests for MCP task storage
