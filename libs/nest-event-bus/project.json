@@ -1,0 +1,38 @@
+{
+  "name": "nest-event-bus",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/nest-event-bus/src",
+  "projectType": "library",
+  "tags": ["type:implementation", "scope:events"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outPath}"],
+      "options": {
+        "outPath": "dist/libs/nest-event-bus",
+        "tsConfig": "libs/nest-event-bus/tsconfig.lib.json",
+        "main": "libs/nest-event-bus/src/index.ts"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/nest-event-bus"],
+      "options": {
+        "jestConfig": "libs/nest-event-bus/jest.config.ts"
+      }
+    },
+    "typecheck": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "tsConfig": "libs/nest-event-bus/tsconfig.lib.json",
+        "noEmit": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/nest-event-bus/src/**/*.ts"]
+      }
+    }
+  }
+}
