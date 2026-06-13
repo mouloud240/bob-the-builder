@@ -14,4 +14,9 @@ export class AppController {
   getHealth() {
     return this.appService.getHealth();
   }
+
+  @Get('api/status')
+  getApiStatus() {
+    return this.appService.getApiStatus();
+  }
 }

@@ -7,11 +7,12 @@ import { TASK_STORAGE } from '@ai-orchestrator/core-interfaces';
 @Module({
   imports: [ConfigModule],
   providers: [
+    McpTaskStorageService,
     {
       provide: TASK_STORAGE,
-      useClass: McpTaskStorageService,
+      useExisting: McpTaskStorageService,
     },
   ],
-  exports: [TASK_STORAGE],
+  exports: [TASK_STORAGE, McpTaskStorageService],
 })
 export class McpTaskStorageModule {}

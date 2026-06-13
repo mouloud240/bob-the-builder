@@ -10,14 +10,25 @@ export class McpTaskStorageService implements ITaskStorage, OnModuleInit {
   private readonly logger = new Logger(McpTaskStorageService.name);
   private client: InstanceType<typeof import('@modelcontextprotocol/sdk/client').Client> | null = null;
   private connected = false;
+  private connectionError: string | null = null;
   private McpClientClass: (new (...args: unknown[]) => InstanceType<typeof import('@modelcontextprotocol/sdk/client').Client>) | null = null;
   private StreamableHTTPTransportClass: (new (...args: unknown[]) => unknown) | null = null;
+  private readonly maxRetries = 3;
+  private readonly retryDelayMs = 5000;
 
   constructor(private readonly configService: ConfigService) {}
 
   async onModuleInit(): Promise<void> {
     await this.loadMcpModule();
-    await this.connect();
+    await this.connectWithRetry();
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  getConnectionError(): string | null {
+    return this.connectionError;
   }
 
   private async loadMcpModule(): Promise<void> {
@@ -27,6 +38,23 @@ export class McpTaskStorageService implements ITaskStorage, OnModuleInit {
     ]);
     this.McpClientClass = clientModule.Client;
     this.StreamableHTTPTransportClass = transportModule.StreamableHTTPClientTransport;
+  }
+
+  private async connectWithRetry(): Promise<void> {
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        await this.connect();
+        return;
+      } catch (error) {
+        this.connectionError = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Connection attempt ${attempt}/${this.maxRetries} failed: ${this.connectionError}`);
+        if (attempt < this.maxRetries) {
+          this.logger.log(`Retrying in ${this.retryDelayMs / 1000}s...`);
+          await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs));
+        }
+      }
+    }
+    this.logger.error(`Failed to connect to MCP server after ${this.maxRetries} attempts. Service will operate in degraded mode.`);
   }
 
   private async connect(): Promise<void> {
@@ -120,10 +148,11 @@ export class McpTaskStorageService implements ITaskStorage, OnModuleInit {
     return textContent;
   }
 
-  private async reconnect(): Promise<void> {
-    this.logger.warn('Attempting to reconnect to MCP server...');
+  async reconnect(): Promise<void> {
+    this.logger.warn('Reconnecting to MCP server...');
     this.connected = false;
     this.client = null;
-    await this.connect();
+    this.connectionError = null;
+    await this.connectWithRetry();
   }
 }
