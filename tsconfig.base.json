@@ -1,0 +1,30 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": true,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2022",
+    "module": "esnext",
+    "lib": ["es2022", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ai-orchestrator/shared": ["libs/shared/src/index.ts"],
+      "@ai-orchestrator/core-interfaces": ["libs/core-interfaces/src/index.ts"],
+      "@ai-orchestrator/file-context-db": ["libs/file-context-db/src/index.ts"],
+      "@ai-orchestrator/nest-event-bus": ["libs/nest-event-bus/src/index.ts"],
+      "@ai-orchestrator/mcp-task-storage": ["libs/mcp-task-storage/src/index.ts"],
+      "@ai-orchestrator/opencode-adapter": ["libs/opencode-adapter/src/index.ts"],
+      "@ai-orchestrator/shell-test-runner": ["libs/shell-test-runner/src/index.ts"],
+      "@ai-orchestrator/gh-pr-provider": ["libs/gh-pr-provider/src/index.ts"],
+      "@ai-orchestrator/orchestrator": ["libs/orchestrator/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

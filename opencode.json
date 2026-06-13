@@ -5,6 +5,11 @@
 
       "type": "remote",
       "url": "http://localhost:3000/mcp"
+    },
+    "excalidraw":{
+
+      "type": "remote",
+      "url": "https://mcp.excalidraw.com"
     }
 
   }

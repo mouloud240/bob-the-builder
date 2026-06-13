@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json.schemastore.org/nx",
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/.eslintrc.json",
+      "!{projectRoot}/eslint.config.mjs",
+      "!{projectRoot}/**/?(*.)test.ts",
+      "!{projectRoot}/**/?(*.)spec.ts",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/jest.config.ts",
+      "!{projectRoot}/test/**/*",
+      "!{projectRoot}/src/test-setup.ts"
+    ],
+    "sharedGlobals": []
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "test": {
+      "inputs": ["default", "^production"]
+    },
+    "lint": {
+      "inputs": ["default", "{projectRoot}/.eslintrc.json", "{projectRoot}/eslint.config.mjs"]
+    },
+    "typecheck": {
+      "inputs": ["default", "^production"]
+    }
+  },
+  "defaultProject": "orchestrator-server",
+  "plugins": ["@nx/js/typescript"]
+}

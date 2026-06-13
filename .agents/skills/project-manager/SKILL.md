@@ -15,7 +15,6 @@ Transform Product Requirement Documents into actionable ClickUp tasks, manage de
 4. **ClickUp Management**: Create tasks with metadata, set dependencies, monitor status changes
 5. **Quality Review**: Verify acceptance criteria, code quality, test coverage
 6. **PR Creation**: Write clear PRs linking to ClickUp tasks
-**PS**: Your work will start with Sprint 1 , and you will find deliverables of the sprint 0 in the docs folder those include but not limited :
 - **Team Profiles**  
   Description of project team members, their roles, responsibilities, and assigned positions (project manager, quality manager, etc.).
 
