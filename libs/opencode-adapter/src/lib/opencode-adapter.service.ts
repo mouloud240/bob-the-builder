@@ -9,12 +9,26 @@ import {
 } from '@ai-orchestrator/shared';
 import { mapOpenCodeEvent } from './event-mapper';
 
-type OpencodeClient = import('@opencode-ai/sdk').OpencodeClient;
+type OpencodeClientType = {
+  session: {
+    create: (opts: unknown) => Promise<{ data?: unknown }>;
+    get: (opts: unknown) => Promise<{ data?: unknown }>;
+    list: (opts: unknown) => Promise<{ data?: unknown }>;
+    promptAsync: (opts: unknown) => Promise<unknown>;
+    abort: (opts: unknown) => Promise<unknown>;
+    diff: (opts: unknown) => Promise<{ data?: unknown }>;
+    status: (opts: unknown) => Promise<{ data?: unknown }>;
+  };
+  event: {
+    subscribe: (opts: unknown) => Promise<{ stream: AsyncIterable<unknown> }>;
+  };
+  postSessionIdPermissionsPermissionId: (opts: unknown) => Promise<unknown>;
+};
 
 @Injectable()
 export class OpencodeAdapterService implements IAgentProvider, OnModuleInit {
   private readonly logger = new Logger(OpencodeAdapterService.name);
-  private client: OpencodeClient | null = null;
+  private client: OpencodeClientType | null = null;
   private connected = false;
   private connectionError: string | null = null;
   private readonly maxRetries = 3;
@@ -38,7 +52,7 @@ export class OpencodeAdapterService implements IAgentProvider, OnModuleInit {
     return this.connectionError;
   }
 
-  private async ensureClient(): Promise<OpencodeClient> {
+  private async ensureClient(): Promise<OpencodeClientType> {
     if (!this.client || !this.connected) {
       throw new Error('OpenCode client is not connected');
     }
@@ -67,8 +81,8 @@ export class OpencodeAdapterService implements IAgentProvider, OnModuleInit {
     this.logger.log(`Connecting to OpenCode server at ${baseUrl}`);
 
     try {
-      const { createOpencodeClient } = await import('@opencode-ai/sdk');
-      this.client = createOpencodeClient({
+      const sdk = await import('@opencode-ai/sdk') as { createOpencodeClient: (opts: unknown) => OpencodeClientType };
+      this.client = sdk.createOpencodeClient({
         baseUrl,
         directory: this.directory,
       });
