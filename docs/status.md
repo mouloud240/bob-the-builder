@@ -1,51 +1,62 @@
 # AI Orchestrator — Status
 
-## Current Phase: Milestone 1 Complete — MCP Integration Verified
+## Current Phase: Milestone 2 Complete — OpenCode SDK Integration
 
 ### M0 Deliverables ✅
-- [x] Nx workspace initialized (pnpm monorepo, 9 libs + 1 app)
-- [x] Core interfaces defined (6 interfaces with Symbol injection tokens)
-- [x] All 6 implementation libraries scaffolded and compiling
-- [x] Orchestrator service skeleton with task state machine
-- [x] NestJS app composition root with `@Global()` DI modules
-- [x] Build compiles, `nx serve` boots, routes registered
-- [x] Runtime fixes: module resolution (`nodenext`), `tsconfig-paths`, `@Global()` modules
-- [x] Context directory with initial JSON configs
-- [x] Architecture docs, ADRs, conventions all written
+- Nx workspace, all libs, app bootstrap, runtime fixes
 
 ### M1 Deliverables ✅
-- [x] `/api/status` endpoint showing MCP connection state
-- [x] `/health` endpoint
-- [x] Task CRUD REST controller (`/api/tasks/*`)
-- [x] McpTaskStorageService retry (3 attempts, 5s backoff) and health check
-- [x] `isConnected()`, `getConnectionError()`, `reconnect()` public methods
-- [x] Graceful degradation: app boots even if MCP server is down
-- [x] `.env` file with `MCP_SERVER_URL`, `ORCHESTRATOR_PORT`, `CONTEXT_BASE_DIR`
-- [x] `make dev-full` target (starts MCP + orchestrator)
-- [x] Integration test for MCP task storage service
+- Health + MCP status endpoints
+- Task REST controller (CRUD)
+- MCP retry/backoff/degraded mode
+- .env, makefile dev-full, integration tests
+
+### M2 Deliverables ✅
+- [x] IAgentProvider interface updated to match OpenCode SDK API
+  - Added `getSessionStatus()`, `listSessions()` methods
+  - Changed `grantPermission` to accept `permissionId` + `response` enum (`once/always/reject`)
+  - Changed `onSessionEvent` to global SSE subscription (no sessionId parameter)
+  - Added `isConnected()`, `getConnectionError()`, `reconnect()` lifecycle
+  - Added `AgentSessionEvent` type with typed event names
+- [x] OpencodeAdapterService implemented with real SDK calls
+  - Dynamic import of `@opencode-ai/sdk` (ESM-only) in `connect()`
+  - `createSession()`: creates session + sends initial prompt via `promptAsync()`
+  - `sendPrompt()`: fire-and-forget via `promptAsync()`
+  - `getSession()`, `getSessionStatus()`, `listSessions()`: read session state
+  - `abortSession()`: abort running session
+  - `getDiff()`: retrieve file diffs, format as unified diff
+  - `grantPermission()`: respond to permission requests (`once/always/reject`)
+  - `onSessionEvent()`: SSE via `AsyncGenerator` from `client.event.subscribe()`
+  - Graceful degradation with retry (3 attempts, 5s backoff)
+- [x] Event mapper for typed SSE parsing
+  - `mapOpenCodeEvent()` translates raw OpenCode events → `AgentSessionEvent`
+  - Maps `session.idle` → `AgentStatus.Idle`, `session.error` → `AgentStatus.Failed`, etc.
+  - Helper predicates: `isSessionIdleEvent`, `isSessionErrorEvent`, `isPermissionRequestEvent`, `isSessionDiffEvent`
+- [x] App status endpoint includes OpenCode connection status
+  - `/api/status` returns `{ mcp: {connected, error}, opencode: {connected, error} }`
+  - `OPENCODE_DIRECTORY` env var for project directory override
+- [x] Tests (25 passing)
+  - Service tests: connection, interface compliance, degraded mode
+  - Event mapper tests: all event types, type guards
+  - Jest config fixed with `pathsToModuleNameMapper` + SDK mock
+  - Downgraded jest to v29 for ts-jest compat
 
 ### Build Status
 - `nx build orchestrator-server` ✅ passes
-- `nx serve orchestrator-server` ✅ boots NestJS, all modules initialize, routes mapped
-- Known runtime error: `MCP_SERVER_URL` not set → MCP service fails gracefully (expected with no MCP server running)
+- `nx test opencode-adapter` ✅ 25/25 tests pass
+- Known runtime behavior: OpenCode fails gracefully when server unavailable (expected)
 
 ### Blockers
 - None
 
-### Recent Changes (last session)
-- M1-1: Added `/api/status` endpoint, MCP health check, connection retry
-- M1-2: Connection retry with backoff, `isConnected()` and `getConnectionError()` (merged into M1-1)
-- M1-3: Task REST controller with full CRUD at `/api/tasks/*`
-- M1-4: `.env` file, makefile `dev-full` target, status docs update
-- M1-5: Integration test for MCP task storage service
-- Fix: `tsconfig.base.json` → `moduleResolution: "nodenext"`, `module: "commonjs"` for NestJS + ESM SDK compat
-- Fix: MCP SDK dynamic import pattern for ESM compatibility
-- Fix: All adapter modules marked `@Global()` for cross-module DI
-- Fix: Lib `package.json` `main`/`types` → `.js`/`.d.ts` for runtime resolution
-- Fix: `FileContextDbService` constructor uses `ConfigService` instead of raw string
+### Recent Changes (M2 - 5 commits)
+- 699e9e4 feat(interfaces): update IAgentProvider to match OpenCode SDK API
+- 96b043c feat(opencode-adapter): implement real SDK integration with session lifecycle
+- b6e8fe6 feat(opencode-adapter): add event mapper for typed SSE event parsing
+- 43e3b8f feat(server): add OpenCode connection status to /api/status endpoint
+- 52e565d test(opencode-adapter): add service and event-mapper tests
 
 ### Next Up
-- **M2**: OpenCode SDK adapter — replace stubs in `OpencodeAdapterService` with real SDK calls
-- **M3**: Orchestration state machine — serial task execution lifecycle
+- **M3**: Orchestration state machine (serial execution, task lifecycle)
 - **M4**: Git worktree manager + parallel task execution
 - **M5**: PR creation pipeline
