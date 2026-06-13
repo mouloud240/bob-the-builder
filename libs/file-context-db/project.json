@@ -1,0 +1,38 @@
+{
+  "name": "file-context-db",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/file-context-db/src",
+  "projectType": "library",
+  "tags": ["type:implementation", "scope:context"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outPath}"],
+      "options": {
+        "outPath": "dist/libs/file-context-db",
+        "tsConfig": "libs/file-context-db/tsconfig.lib.json",
+        "main": "libs/file-context-db/src/index.ts"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/file-context-db"],
+      "options": {
+        "jestConfig": "libs/file-context-db/jest.config.ts"
+      }
+    },
+    "typecheck": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "tsConfig": "libs/file-context-db/tsconfig.lib.json",
+        "noEmit": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/file-context-db/src/**/*.ts"]
+      }
+    }
+  }
+}
