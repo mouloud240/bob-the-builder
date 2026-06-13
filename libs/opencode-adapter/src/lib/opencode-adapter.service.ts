@@ -7,6 +7,7 @@ import {
   AgentStatus,
   AgentSessionDiff,
 } from '@ai-orchestrator/shared';
+import { mapOpenCodeEvent } from './event-mapper';
 
 type OpencodeClient = import('@opencode-ai/sdk').OpencodeClient;
 
@@ -258,12 +259,10 @@ export class OpencodeAdapterService implements IAgentProvider, OnModuleInit {
         for await (const value of eventStream.stream) {
           if (aborted) break;
 
-          const event: AgentSessionEvent = {
-            type: (value as Record<string, unknown>).type as string ?? 'unknown',
-            data: value,
-          };
+          const mapped = mapOpenCodeEvent(value as Record<string, unknown>);
+          if (!mapped) continue;
 
-          callback(event);
+          callback(mapped);
         }
       } catch (error) {
         if (!aborted) {
