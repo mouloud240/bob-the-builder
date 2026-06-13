@@ -29,3 +29,10 @@ export const AgentStatus = {
   Aborted: 'aborted',
 } as const;
 export type AgentStatus = (typeof AgentStatus)[keyof typeof AgentStatus];
+
+export const OpenCodeSessionStatus = {
+  Idle: 'idle',
+  Busy: 'busy',
+  Retry: 'retry',
+} as const;
+export type OpenCodeSessionStatus = (typeof OpenCodeSessionStatus)[keyof typeof OpenCodeSessionStatus];

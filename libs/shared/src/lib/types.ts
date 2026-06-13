@@ -52,6 +52,9 @@ export interface AgentSessionCreateInput {
   prompt: string;
   workingDirectory?: string;
   permissions?: Record<string, boolean>;
+  agent?: string;
+  model?: string;
+  parentSessionId?: string;
 }
 
 export interface AgentSessionResult {
@@ -62,6 +65,24 @@ export interface AgentSessionResult {
   output?: string;
   startedAt: string;
   completedAt?: string;
+  title?: string;
+  directory?: string;
+}
+
+export interface AgentSessionDiff {
+  file: string;
+  before: string;
+  after: string;
+  additions: number;
+  deletions: number;
+}
+
+export interface AgentPermissionRequest {
+  id: string;
+  sessionId: string;
+  messageId: string;
+  type: string;
+  title: string;
 }
 
 export interface TestRunInput {
