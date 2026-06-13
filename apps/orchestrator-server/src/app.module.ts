@@ -9,6 +9,7 @@ import { GhPrProviderModule } from '@ai-orchestrator/gh-pr-provider';
 import { OrchestratorModule } from '@ai-orchestrator/orchestrator';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TaskController } from './task.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { AppService } from './app.service';
     GhPrProviderModule,
     OrchestratorModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, TaskController],
   providers: [AppService],
 })
 export class AppModule {}
