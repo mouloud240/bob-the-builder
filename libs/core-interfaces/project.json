@@ -1,0 +1,38 @@
+{
+  "name": "core-interfaces",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/core-interfaces/src",
+  "projectType": "library",
+  "tags": ["type:core", "scope:core"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outPath}"],
+      "options": {
+        "outPath": "dist/libs/core-interfaces",
+        "tsConfig": "libs/core-interfaces/tsconfig.lib.json",
+        "main": "libs/core-interfaces/src/index.ts"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/core-interfaces"],
+      "options": {
+        "jestConfig": "libs/core-interfaces/jest.config.ts"
+      }
+    },
+    "typecheck": {
+      "executor": "@nx/js:tsc",
+      "options": {
+        "tsConfig": "libs/core-interfaces/tsconfig.lib.json",
+        "noEmit": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/core-interfaces/src/**/*.ts"]
+      }
+    }
+  }
+}
