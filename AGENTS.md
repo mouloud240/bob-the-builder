@@ -108,7 +108,7 @@ DELETE /api/tasks/:id       → Delete task
 
 ## Next Milestones
 
-- **M2**: OpenCode SDK adapter implementation (replace stubs in `OpencodeAdapterService`)
-- **M3**: Orchestration state machine (serial execution, task lifecycle)
+- [x] **M2**: OpenCode SDK adapter implementation (replace stubs in `OpencodeAdapterService`) 
+- [x] **M3**: Orchestration state machine (serial execution, task lifecycle)
 - **M4**: Git worktree manager + parallel task execution (`IWorktreeManager`, `libs/git-worktree/`)
 - **M5**: PR creation pipeline (per-worktree branches)
