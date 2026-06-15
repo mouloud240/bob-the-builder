@@ -26,7 +26,7 @@ typecheck:
 
 start-mcp:
 	@echo "Starting ClickUp MCP..."
-	@cd click-up-mcp && pnpm install && pnpm start
+	@cd click-up-mcp && pnpm install --ignore-workspace && pnpm start
 
 clean:
 	@echo "Cleaning build artifacts..."
@@ -38,7 +38,7 @@ dev: serve
 dev-full:
 	@echo "Starting ClickUp MCP and orchestrator-server..."
 	@make start-mcp &
-	@sleep 5
+	@sleep 8
 	@make serve
 
 build-all:

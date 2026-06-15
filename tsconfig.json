@@ -1,4 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
-  "exclude": ["node_modules", "tmp", "dist"]
+  "exclude": [
+    "node_modules",
+    "tmp",
+    "dist"
+  ],
+  "references": []
 }

@@ -4,6 +4,7 @@
   "sourceRoot": "apps/orchestrator-server/src",
   "projectType": "application",
   "tags": ["type:app", "scope:orchestration"],
+  "implicitDependencies": ["opencode-adapter"],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",

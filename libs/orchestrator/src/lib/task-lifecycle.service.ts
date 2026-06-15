@@ -53,6 +53,20 @@ export class TaskLifecycleService implements OnModuleInit, OnModuleDestroy {
     return this.processing;
   }
 
+  async prepareTask(taskId: string): Promise<void> {
+    this.logger.log(`Preparing task: ${taskId}`);
+
+    const task = await this.taskStorage.getTask(taskId);
+    const currentStatus = task.status as TaskStatus;
+
+    if (currentStatus !== TaskStatus.Pending) {
+      this.logger.warn(`Cannot prepare task ${taskId} from status ${currentStatus} — must be pending`);
+      return;
+    }
+
+    await this.advanceTask(taskId, TaskStatus.Ready);
+  }
+
   async startTask(taskId: string): Promise<void> {
     this.logger.log(`Starting task: ${taskId}`);
 
@@ -61,8 +75,14 @@ export class TaskLifecycleService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const task = await this.taskStorage.getTask(taskId);
-    const currentStatus = task.status as TaskStatus;
+    let task = await this.taskStorage.getTask(taskId);
+    let currentStatus = task.status as TaskStatus;
+
+    if (currentStatus === TaskStatus.Pending) {
+      await this.prepareTask(taskId);
+      task = await this.taskStorage.getTask(taskId);
+      currentStatus = task.status as TaskStatus;
+    }
 
     if (!canTransition(currentStatus, TaskStatus.InProgress)) {
       this.logger.warn(`Cannot transition task ${taskId} from ${currentStatus} to in_progress`);
@@ -78,10 +98,12 @@ export class TaskLifecycleService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const config = await this.contextDb.getConfig();
+
     const session = await this.agentProvider.createSession({
       taskId,
       prompt: `Implement task: ${task.name}\n\n${task.description}`,
-      workingDirectory: process.cwd(),
+      workingDirectory: config.projectDirectory,
     });
 
     const transition = transitionTask(taskId, currentStatus, TaskStatus.InProgress);
@@ -130,9 +152,11 @@ export class TaskLifecycleService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const config = await this.contextDb.getConfig();
+
     const testResult = await this.testRunner.run({
-      command: 'make test',
-      workingDirectory: process.cwd(),
+      command: config.testCommand,
+      workingDirectory: config.projectDirectory,
       timeout: 300000,
     });
 
@@ -187,6 +211,7 @@ export class TaskLifecycleService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const config = await this.contextDb.getConfig();
     const diff = await this.agentProvider.getDiff(taskSession.agentSessionId);
     const branchName = `task/${taskId}`;
 
@@ -194,7 +219,7 @@ export class TaskLifecycleService implements OnModuleInit, OnModuleDestroy {
       title: `[Task ${taskId}] ${task.name}`,
       body: `${task.description}\n\n## Changes\n\`\`\`diff\n${diff}\n\`\`\``,
       head: branchName,
-      base: 'main',
+      base: config.defaultBranch,
     });
 
     await this.advanceTask(taskId, TaskStatus.PrCreated);

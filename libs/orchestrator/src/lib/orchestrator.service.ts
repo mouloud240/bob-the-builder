@@ -5,6 +5,10 @@ import { TaskLifecycleService } from './task-lifecycle.service';
 export class OrchestratorService {
   constructor(private readonly lifecycleService: TaskLifecycleService) {}
 
+  async prepareTask(taskId: string): Promise<void> {
+    return this.lifecycleService.prepareTask(taskId);
+  }
+
   async startTask(taskId: string): Promise<void> {
     return this.lifecycleService.startTask(taskId);
   }

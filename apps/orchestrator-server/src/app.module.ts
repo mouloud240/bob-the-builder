@@ -11,15 +11,20 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TaskController } from './task.controller';
 import { OrchestrationController } from './orchestration.controller';
+import { ProfilerModule } from '@eleven-labs/nest-profiler';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '.env.local'],
+      envFilePath: ['../env', '.env.local'],
     }),
     FileContextDbModule,
     NestEventBusModule,
+    ProfilerModule.forRoot({
+      isGlobal:true,
+      enabled:process.env.PROFILER==="true"
+    }),
     McpTaskStorageModule,
     OpencodeAdapterModule,
     ShellTestRunnerModule,

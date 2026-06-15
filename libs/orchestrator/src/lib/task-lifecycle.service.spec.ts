@@ -1,11 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TaskStatus, TaskPriority, AgentStatus, ScheduleEntry, TaskResult } from '@ai-orchestrator/shared';
-import { TASK_STORAGE } from '@ai-orchestrator/core-interfaces';
-import { AGENT_PROVIDER, AgentSessionEvent } from '@ai-orchestrator/core-interfaces';
-import { CONTEXT_DB } from '@ai-orchestrator/core-interfaces';
-import { EVENT_BUS } from '@ai-orchestrator/core-interfaces';
-import { TEST_RUNNER } from '@ai-orchestrator/core-interfaces';
-import { PR_PROVIDER } from '@ai-orchestrator/core-interfaces';
+import { TaskStatus, TaskPriority, AgentStatus, ScheduleEntry, TaskResult, OrchestrationConfig } from '@ai-orchestrator/shared';
+import { TASK_STORAGE, AGENT_PROVIDER, AgentSessionEvent, CONTEXT_DB, EVENT_BUS, TEST_RUNNER, PR_PROVIDER } from '@ai-orchestrator/core-interfaces';
 import { TaskLifecycleService } from './task-lifecycle.service';
 
 describe('TaskLifecycleService', () => {
@@ -67,6 +62,19 @@ describe('TaskLifecycleService', () => {
     mergePullRequest: jest.fn(),
   };
 
+  const mockConfig: OrchestrationConfig = {
+    teamId: 'team-1',
+    spaceId: 'space-1',
+    folderId: 'folder-1',
+    listIds: { backlog: 'list-1' },
+    mcpServerUrl: 'http://localhost:3000/mcp',
+    opencodeServerUrl: 'http://localhost:4096',
+    orchestratorPort: 3001,
+    projectDirectory: '/tmp/test-project',
+    testCommand: 'pnpm test',
+    defaultBranch: 'main',
+  };
+
   const mockTask: TaskResult = {
     id: 'task-1',
     name: 'Test Task',
@@ -82,6 +90,7 @@ describe('TaskLifecycleService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
+    mockContextDb.getConfig.mockResolvedValue(mockConfig);
     mockContextDb.getSchedule.mockResolvedValue([]);
     mockContextDb.getTaskSessions.mockResolvedValue([]);
     mockAgentProvider.onSessionEvent.mockResolvedValue(jest.fn());
@@ -120,6 +129,7 @@ describe('TaskLifecycleService', () => {
         expect.objectContaining({
           taskId: 'task-1',
           prompt: expect.stringContaining('Test Task'),
+          workingDirectory: mockConfig.projectDirectory,
         }),
       );
       expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.InProgress });
@@ -162,13 +172,70 @@ describe('TaskLifecycleService', () => {
 
       expect(mockAgentProvider.createSession).not.toHaveBeenCalled();
     });
+
+    it('should auto-promote Pending task to Ready before starting', async () => {
+      const pendingTask = { ...mockTask, status: TaskStatus.Pending };
+      const readyTask = { ...mockTask, status: TaskStatus.Ready };
+
+      mockTaskStorage.getTask
+        .mockResolvedValueOnce(pendingTask)
+        .mockResolvedValueOnce(pendingTask)
+        .mockResolvedValueOnce(pendingTask)
+        .mockResolvedValueOnce(readyTask);
+      mockTaskStorage.updateTask.mockResolvedValue(readyTask);
+      mockAgentProvider.createSession.mockResolvedValue({
+        id: 'session-1',
+        taskId: 'task-1',
+        status: AgentStatus.Running,
+        startedAt: new Date().toISOString(),
+      });
+      mockContextDb.addTaskSession.mockResolvedValue({});
+      mockContextDb.updateScheduleEntry.mockResolvedValue({});
+
+      await service.startTask('task-1');
+
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.Ready });
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.InProgress });
+      expect(mockAgentProvider.createSession).toHaveBeenCalled();
+    });
+  });
+
+  describe('prepareTask', () => {
+    it('should transition Pending task to Ready', async () => {
+      mockTaskStorage.getTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Pending });
+      mockTaskStorage.updateTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Ready });
+      mockContextDb.updateTaskSession.mockResolvedValue({});
+
+      await service.prepareTask('task-1');
+
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.Ready });
+      expect(mockEventBus.emit).toHaveBeenCalledWith('task.decomposed', expect.any(Object));
+    });
+
+    it('should refuse to prepare a task that is not Pending', async () => {
+      mockTaskStorage.getTask.mockResolvedValue({ ...mockTask, status: TaskStatus.InProgress });
+
+      await service.prepareTask('task-1');
+
+      expect(mockTaskStorage.updateTask).not.toHaveBeenCalled();
+    });
   });
 
   describe('reviewTask', () => {
-    it('should transition to Completed and approve when tests pass', async () => {
+    it('should transition to Completed then Approved then auto-create PR when tests pass', async () => {
       service['activeTaskId'] = 'task-1';
 
-      mockTaskStorage.getTask.mockResolvedValue({ ...mockTask, status: TaskStatus.InProgress });
+      const taskInProgress = { ...mockTask, status: TaskStatus.InProgress };
+      const taskCompleted = { ...mockTask, status: TaskStatus.Completed };
+      const taskApproved = { ...mockTask, status: TaskStatus.Approved };
+
+      mockTaskStorage.getTask
+        .mockResolvedValueOnce(taskInProgress)
+        .mockResolvedValueOnce(taskInProgress)
+        .mockResolvedValueOnce(taskCompleted)
+        .mockResolvedValueOnce(taskCompleted)
+        .mockResolvedValueOnce(taskApproved)
+        .mockResolvedValueOnce(taskApproved);
       mockContextDb.getTaskSessions.mockResolvedValue([
         { taskId: 'task-1', agentSessionId: 'session-1', status: TaskStatus.InProgress, assignedAt: '', updatedAt: '' },
       ]);
@@ -179,14 +246,32 @@ describe('TaskLifecycleService', () => {
         duration: 5000,
         passed: true,
       });
-      mockTaskStorage.updateTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Approved });
+      mockTaskStorage.updateTask
+        .mockResolvedValueOnce(taskCompleted)
+        .mockResolvedValueOnce(taskApproved)
+        .mockResolvedValueOnce({ ...mockTask, status: TaskStatus.PrCreated });
       mockContextDb.updateTaskSession.mockResolvedValue({});
+      mockAgentProvider.getDiff.mockResolvedValue('--- a/file.ts\n+++ b/file.ts');
+      mockPrProvider.createPullRequest.mockResolvedValue({
+        number: 42,
+        url: 'https://github.com/org/repo/pull/42',
+        state: 'open',
+        head: 'task/task-1',
+        base: 'main',
+      });
 
       await service.reviewTask('task-1');
 
       expect(mockTestRunner.run).toHaveBeenCalledWith(
-        expect.objectContaining({ command: 'make test' }),
+        expect.objectContaining({
+          command: mockConfig.testCommand,
+          workingDirectory: mockConfig.projectDirectory,
+        }),
       );
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.Completed });
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.Approved });
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.PrCreated });
+      expect(mockPrProvider.createPullRequest).toHaveBeenCalled();
     });
 
     it('should transition to Completed then NeedsRevision when tests fail', async () => {
@@ -230,14 +315,41 @@ describe('TaskLifecycleService', () => {
   });
 
   describe('approveTask', () => {
-    it('should transition Completed task to Approved', async () => {
-      mockTaskStorage.getTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Completed });
-      mockTaskStorage.updateTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Approved });
+    it('should transition Completed task to Approved and auto-create PR', async () => {
+      service['activeTaskId'] = 'task-1';
+      service['processing'] = true;
+
+      const taskCompleted = { ...mockTask, status: TaskStatus.Completed };
+      const taskApproved = { ...mockTask, status: TaskStatus.Approved };
+
+      mockTaskStorage.getTask
+        .mockResolvedValueOnce(taskCompleted)
+        .mockResolvedValueOnce(taskCompleted)
+        .mockResolvedValueOnce(taskApproved)
+        .mockResolvedValueOnce(taskApproved);
+      mockTaskStorage.updateTask
+        .mockResolvedValueOnce(taskApproved)
+        .mockResolvedValueOnce({ ...mockTask, status: TaskStatus.PrCreated });
       mockContextDb.updateTaskSession.mockResolvedValue({});
+      mockContextDb.getTaskSessions.mockResolvedValue([
+        { taskId: 'task-1', agentSessionId: 'session-1', status: TaskStatus.Approved, assignedAt: '', updatedAt: '' },
+      ]);
+      mockAgentProvider.getDiff.mockResolvedValue('--- a/file.ts\n+++ b/file.ts');
+      mockPrProvider.createPullRequest.mockResolvedValue({
+        number: 42,
+        url: 'https://github.com/org/repo/pull/42',
+        state: 'open',
+        head: 'task/task-1',
+        base: 'main',
+      });
 
       await service.approveTask('task-1');
 
       expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.Approved });
+      expect(mockTaskStorage.updateTask).toHaveBeenCalledWith('task-1', { status: TaskStatus.PrCreated });
+      expect(mockPrProvider.createPullRequest).toHaveBeenCalled();
+      expect(service.isProcessing()).toBe(false);
+      expect(service.getActiveTaskId()).toBeNull();
     });
 
     it('should refuse to approve a task not in Completed state', async () => {
@@ -250,7 +362,10 @@ describe('TaskLifecycleService', () => {
   });
 
   describe('createPRForTask', () => {
-    it('should create a PR and transition to PrCreated', async () => {
+    it('should create a PR and transition to PrCreated, clearing processing state', async () => {
+      service['activeTaskId'] = 'task-1';
+      service['processing'] = true;
+
       mockTaskStorage.getTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Approved });
       mockContextDb.getTaskSessions.mockResolvedValue([
         { taskId: 'task-1', agentSessionId: 'session-1', status: TaskStatus.Approved, assignedAt: '', updatedAt: '' },
@@ -272,9 +387,11 @@ describe('TaskLifecycleService', () => {
         expect.objectContaining({
           title: '[Task task-1] Test Task',
           head: 'task/task-1',
-          base: 'main',
+          base: mockConfig.defaultBranch,
         }),
       );
+      expect(service.isProcessing()).toBe(false);
+      expect(service.getActiveTaskId()).toBeNull();
     });
 
     it('should refuse to create PR for task not in Approved state', async () => {
@@ -381,6 +498,40 @@ describe('TaskLifecycleService', () => {
       expect(status.pendingTasks).toBe(1);
       expect(status.activeTasks).toBe(1);
       expect(status.completedTasks).toBe(1);
+    });
+  });
+
+  describe('terminal state cleanup', () => {
+    it('should clear processing and activeTaskId when task reaches NeedsIntervention', async () => {
+      service['activeTaskId'] = 'task-1';
+      service['processing'] = true;
+
+      const taskInProgress = { ...mockTask, status: TaskStatus.InProgress };
+
+      mockTaskStorage.getTask.mockResolvedValue(taskInProgress);
+      mockTaskStorage.updateTask.mockResolvedValue({ ...mockTask, status: TaskStatus.NeedsIntervention });
+      mockContextDb.updateTaskSession.mockResolvedValue({});
+
+      await service['advanceTask']('task-1', TaskStatus.NeedsIntervention);
+
+      expect(service.isProcessing()).toBe(false);
+      expect(service.getActiveTaskId()).toBeNull();
+    });
+
+    it('should clear processing and activeTaskId when task reaches Blocked', async () => {
+      service['activeTaskId'] = 'task-1';
+      service['processing'] = true;
+
+      const taskReady = { ...mockTask, status: TaskStatus.Ready };
+
+      mockTaskStorage.getTask.mockResolvedValue(taskReady);
+      mockTaskStorage.updateTask.mockResolvedValue({ ...mockTask, status: TaskStatus.Blocked });
+      mockContextDb.updateTaskSession.mockResolvedValue({});
+
+      await service['advanceTask']('task-1', TaskStatus.Blocked);
+
+      expect(service.isProcessing()).toBe(false);
+      expect(service.getActiveTaskId()).toBeNull();
     });
   });
 });
